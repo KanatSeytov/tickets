@@ -16,16 +16,14 @@ path_to_tesseract = 'C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe'
 
 pytesseract.tesseract_cmd = path_to_tesseract
 
-print(pytesseract.tesseract_cmd)
-print('---------------------')
+
 def pdf_to_jpg(tickets):
     jpg_tickets = []
     i = 1
     for ticket in tickets:
         path_to_pdf = relative_path_to_tickets+ ticket
         pages = convert_from_path(path_to_pdf, 350, poppler_path= path_to_poppler)
-        
-        print(ticket)
+
         for page in pages:
             
             image_name = "Page_" + str(i) + ".jpg"  
@@ -38,70 +36,54 @@ jpg_tickets = pdf_to_jpg(tickets)
 
 def transform_image_to_text(image):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    text = pytesseract.image_to_data(gray_image).splitlines()[-1].split('\t')[-1].split('/') # this line transform data and split it by slash like in tickets of FlyArystan
+            # this line transform data and split it by slash like in tickets of FlyArystan
+    text = pytesseract.image_to_data(gray_image).splitlines()[-1].split('\t')[-1].split('/') 
     return text
 
-for image in jpg_tickets:
-    print(image)
-    img_sized = cv2.imread(image)
-    img = img_sized
-    # print(img_sized.shape) 4094, 2893
-    # scale_percent = .3 # percent of original size
+def get_useraname_from_image(image):
+    return image[755:855, 850:1600]
+
+def get_travel_date_from_image(image):
+    return image[400:480, 80:450]
+    
+def openImage(link):
+    return cv2.imread(link)
+
+def normilize_image(img_sized):
     width = 2893 #int(img_sized.shape[1] * scale_percent)
     height = 4094  #int(img_sized.shape[0] * scale_percent)
     dim = (width, height)
-    img = cv2.resize(img_sized, dim, interpolation = cv2.INTER_AREA)
-    # t = pytesseract.image_to_string(Image.open(image))
-    # m = re.findall("Passenger", t)
-    # if m:
-    #     print(m)
+    image = cv2.resize(img_sized, dim, interpolation = cv2.INTER_AREA)
+    return image
 
-    img = cv2.rectangle(img, (850,755), (1600, 855), (255,0,0), 1)
-    user_name = img[755:855, 850:1600]
-    img = cv2.rectangle(img, (80,400), (450,480), (0,255,0), 1)
-    travel_date = img[400:480, 80:450]
-    # img[0:150,0:750] = user_name
-    # img[0:80,0:370]  = travel_date
+def run():
+    for file in jpg_tickets:
+        img_sized = openImage(file)
+        img = normilize_image(img_sized)
 
-    user_name = transform_image_to_text(user_name)
-    # gray_image = cv2.cvtColor(user_name, cv2.COLOR_BGR2GRAY)
-    # surname, name = pytesseract.image_to_data(gray_image).splitlines()[-1].split('\t')[-1].split('/')
-    surname, name = user_name
-    print(name, surname)
+        # extract user name and surname in image
+        img = cv2.rectangle(img, (850,755), (1600, 855), (255,0,0), 1)
+        user_name = get_useraname_from_image(img)
 
-    travel_date = transform_image_to_text(travel_date)
-    day, month, year = travel_date
-    date = f"{day}/{month}/{year}"
-    print(date)
-    datetime.datetime.strptime(date, '%d/%m/%Y')
-    # threshold_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-    cv2.imshow('threshold image', img)
+        # extract user travel date of user in image
+        img = cv2.rectangle(img, (80,400), (450,480), (0,255,0), 1)
+        travel_date =get_travel_date_from_image(img)
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        # img[0:150,0:750] = user_name
+        # img[0:80,0:370]  = travel_date
 
-# jpg_tickets = []
-# i = 1
-# for ticket in tickets:
-#     path_to_pdf = relative_path_to_tickets+ ticket
-#     pages = convert_from_path(path_to_pdf, 350, poppler_path= path_to_poppler)
-    
-#     print(ticket)
-#     for page in pages:
-        
-#         image_name = "Page_" + str(i) + ".jpg"  
-#         page.save(image_name, "JPEG")
-#         jpg_tickets.append(image_name)
-#         i = i+1    
+        user_name = transform_image_to_text(user_name)
+        surname, name = user_name
+
+        travel_date = transform_image_to_text(travel_date)
+        day, month, year = travel_date
+        date = f"{day}/{month}/{year}"
+        datetime.datetime.strptime(date, '%d/%m/%Y')
+
+        cv2.imshow('threshold image', img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
-# for image in jpg_tickets:
-#     print(image)
-#     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-#     threshold_img = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-#     cv2.imshow('threshold image', threshold_img)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
+if __name__ == '__main__':
+    run()
